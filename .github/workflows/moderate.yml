@@ -1,0 +1,42 @@
+# RouteMind user photos — moderation, in the PUBLIC repository ibrahim212-wq/routemind-ugc
+# (docs/place-ugc-2026-10.md §3). The canonical copy of this file is cairoWay/tools/ugc/ci/moderate.yml in
+# the app repository; `python tools/ugc/sync_repo.py` installs it here with moderate.py.
+#
+# Every three hours: each photo waiting in the DRAFT release `pending` (not public) is checked for nudity,
+# has faces and licence plates blurred and its metadata dropped, is resized, and is published as an asset
+# of a `photos-NNNN` release — or rejected. Free: GitHub-hosted runners cost nothing in a public repository,
+# and nothing here touches Supabase storage (only the photo rows, through the service key).
+name: moderate
+
+on:
+  schedule:
+    - cron: "41 */3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: moderate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  moderate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Moderate the waiting photos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python moderate.py --work /tmp/ugc-moderation

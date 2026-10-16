@@ -1,0 +1,4 @@
+# The photo moderation job (moderate.py) — Python 3.12 on GitHub Actions.
+numpy>=1.26,<3
+opencv-python-headless>=4.10,<5
+nudenet>=3.4,<4
